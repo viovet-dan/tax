@@ -62,11 +62,17 @@ class EuTaxTypeResolver implements TaxTypeResolverInterface
 
         $resolvedTaxTypes = [];
         if (empty($storeTaxTypes) && !empty($storeRegistrationTaxTypes)) {
-            // The store is not in the EU but is registered to collect VAT.
-            // This VAT is only charged on B2C digital services.
+            // The store is not in the EU but is registered to collect VAT
             $resolvedTaxTypes = self::NO_APPLICABLE_TAX_TYPE;
             if ($isDigital && !$customerTaxNumber) {
                 $resolvedTaxTypes = $customerTaxTypes;
+            } elseif (!$isDigital && !$customerTaxNumber &&  $storeCountry == 'GB') {
+                //Physical products to Europe from GB. Might need to collect VAT for countries the business is registered in.
+                $resolvedTaxTypes = $storeTaxTypes;
+                $customerTaxType = reset($customerTaxTypes);
+                if ($this->checkStoreRegistration($customerTaxType->getZone(), $context)) {
+                    $resolvedTaxTypes = $customerTaxTypes;
+                }
             }
         } elseif ($customerTaxNumber && $customerCountry != $storeCountry) {
             // Intra-community supply (B2B).
